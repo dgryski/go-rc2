@@ -57,13 +57,17 @@ func TestEncryptDecrypt(t *testing.T) {
 		p, _ := hex.DecodeString(tt.plain)
 		c, _ := hex.DecodeString(tt.cipher)
 
-		dst := Encrypt(k, tt.t1, p)
+		b, _ := New(k, tt.t1)
+
+		var dst [8]byte
+
+		b.Encrypt(dst[:], p)
 
 		if !bytes.Equal(dst[:], c) {
 			t.Errorf("encrypt failed: got % 2x wanted % 2x\n", dst, c)
 		}
 
-		dst = Decrypt(k, tt.t1, c)
+		b.Decrypt(dst[:], c)
 
 		if !bytes.Equal(dst[:], p) {
 			t.Errorf("decrypt failed: got % 2x wanted % 2x\n", dst, p)

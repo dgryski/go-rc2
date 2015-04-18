@@ -1,12 +1,32 @@
 // Package rc2 implements the RC2 cipher
 package rc2
 
-import "encoding/binary"
+import (
+	"crypto/cipher"
+	"encoding/binary"
+)
 
 /*
 https://www.ietf.org/rfc/rfc2268.txt
 http://people.csail.mit.edu/rivest/pubs/KRRR98.pdf
 */
+
+// The rc2 block size in bytes
+const BlockSize = 8
+
+type rc2Cipher struct {
+	k [64]uint16
+}
+
+// New returns a new rc2 cipher with the given key and effective key length t1
+func New(key []byte, t1 int) (cipher.Block, error) {
+	// TODO(dgryski): error checking for key length
+	return &rc2Cipher{
+		k: expandKey(key, t1),
+	}, nil
+}
+
+func (_ *rc2Cipher) BlockSize() int { return BlockSize }
 
 var piTable = [256]byte{
 	0xd9, 0x78, 0xf9, 0xc4, 0x19, 0xdd, 0xb5, 0xed, 0x28, 0xe9, 0xfd, 0x79, 0x4a, 0xa0, 0xd8, 0x9d,
@@ -27,7 +47,7 @@ var piTable = [256]byte{
 	0xc5, 0xf3, 0xdb, 0x47, 0xe5, 0xa5, 0x9c, 0x77, 0x0a, 0xa6, 0x20, 0x68, 0xfe, 0x7f, 0xc1, 0xad,
 }
 
-func expandKey(key []byte, t1 int) []uint16 {
+func expandKey(key []byte, t1 int) [64]uint16 {
 
 	l := make([]byte, 128)
 	copy(l, key)
@@ -46,7 +66,7 @@ func expandKey(key []byte, t1 int) []uint16 {
 		l[i] = piTable[l[i+1]^l[i+t8]]
 	}
 
-	k := make([]uint16, 64)
+	var k [64]uint16
 
 	for i := range k {
 		k[i] = uint16(l[2*i]) + uint16(l[2*i+1])*256
@@ -89,7 +109,8 @@ func encmash(k, r []uint16) {
 	r[3] = r[3] + k[r[2]&63]
 }
 
-func Encrypt(key []byte, t1 int, src []byte) []byte {
+// Encrypt encrypts the
+func (c *rc2Cipher) Encrypt(dst, src []byte) {
 
 	r := make([]uint16, 4)
 	r[0] = binary.LittleEndian.Uint16(src[0:])
@@ -97,26 +118,22 @@ func Encrypt(key []byte, t1 int, src []byte) []byte {
 	r[2] = binary.LittleEndian.Uint16(src[4:])
 	r[3] = binary.LittleEndian.Uint16(src[6:])
 
-	k := expandKey(key, t1)
-
 	var j int
 
 	for i := 0; i < 5; i++ {
-		encmix(k, r, j)
+		encmix(c.k[:], r, j)
 		j += 4
 	}
-	encmash(k, r)
+	encmash(c.k[:], r)
 	for i := 0; i < 6; i++ {
-		encmix(k, r, j)
+		encmix(c.k[:], r, j)
 		j += 4
 	}
-	encmash(k, r)
+	encmash(c.k[:], r)
 	for i := 0; i < 5; i++ {
-		encmix(k, r, j)
+		encmix(c.k[:], r, j)
 		j += 4
 	}
-
-	dst := make([]byte, 8)
 
 	dst[0] = byte(r[0])
 	dst[1] = byte(r[0] >> 8)
@@ -126,8 +143,6 @@ func Encrypt(key []byte, t1 int, src []byte) []byte {
 	dst[5] = byte(r[2] >> 8)
 	dst[6] = byte(r[3])
 	dst[7] = byte(r[3] >> 8)
-
-	return dst
 }
 
 func decmix(k, r []uint16, j int) {
@@ -160,7 +175,7 @@ func decmash(k, r []uint16) {
 	r[0] = r[0] - k[r[3]&63]
 }
 
-func Decrypt(key []byte, t1 int, src []byte) []byte {
+func (c *rc2Cipher) Decrypt(dst, src []byte) {
 
 	r := make([]uint16, 4)
 	r[0] = binary.LittleEndian.Uint16(src[0:])
@@ -168,26 +183,22 @@ func Decrypt(key []byte, t1 int, src []byte) []byte {
 	r[2] = binary.LittleEndian.Uint16(src[4:])
 	r[3] = binary.LittleEndian.Uint16(src[6:])
 
-	k := expandKey(key, t1)
-
 	j := 63
 
 	for i := 0; i < 5; i++ {
-		decmix(k, r, j)
+		decmix(c.k[:], r, j)
 		j -= 4
 	}
-	decmash(k, r)
+	decmash(c.k[:], r)
 	for i := 0; i < 6; i++ {
-		decmix(k, r, j)
+		decmix(c.k[:], r, j)
 		j -= 4
 	}
-	decmash(k, r)
+	decmash(c.k[:], r)
 	for i := 0; i < 5; i++ {
-		decmix(k, r, j)
+		decmix(c.k[:], r, j)
 		j -= 4
 	}
-
-	dst := make([]byte, 8)
 
 	dst[0] = byte(r[0])
 	dst[1] = byte(r[0] >> 8)
@@ -197,6 +208,4 @@ func Decrypt(key []byte, t1 int, src []byte) []byte {
 	dst[5] = byte(r[2] >> 8)
 	dst[6] = byte(r[3])
 	dst[7] = byte(r[3] >> 8)
-
-	return dst
 }
