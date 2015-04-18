@@ -80,6 +80,8 @@ func rotl16(x uint16, b uint) uint16 {
 	return (x >> (16 - b)) | (x << b)
 }
 
+// TODO(dgryski): inline encmix/encmash into Encrypt() ?
+
 func encmix(k, r []uint16, j int) {
 
 	// mix r[0]
