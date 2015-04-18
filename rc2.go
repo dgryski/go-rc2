@@ -110,7 +110,6 @@ func encmash(k, r []uint16) {
 	r[3] = r[3] + k[r[2]&63]
 }
 
-// Encrypt encrypts the
 func (c *rc2Cipher) Encrypt(dst, src []byte) {
 
 	r := make([]uint16, 4)
