@@ -135,14 +135,10 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 		j += 4
 	}
 
-	dst[0] = byte(r[0])
-	dst[1] = byte(r[0] >> 8)
-	dst[2] = byte(r[1])
-	dst[3] = byte(r[1] >> 8)
-	dst[4] = byte(r[2])
-	dst[5] = byte(r[2] >> 8)
-	dst[6] = byte(r[3])
-	dst[7] = byte(r[3] >> 8)
+	binary.LittleEndian.PutUint16(dst[0:], r[0])
+	binary.LittleEndian.PutUint16(dst[2:], r[1])
+	binary.LittleEndian.PutUint16(dst[4:], r[2])
+	binary.LittleEndian.PutUint16(dst[6:], r[3])
 }
 
 func decmix(k, r []uint16, j int) {
@@ -165,7 +161,6 @@ func decmix(k, r []uint16, j int) {
 	r[0] = rotl16(r[0], 16-1)
 	r[0] = r[0] - k[j] - (r[3] & r[2]) - ((^r[3]) & r[1])
 	j--
-
 }
 
 func decmash(k, r []uint16) {
@@ -200,12 +195,8 @@ func (c *rc2Cipher) Decrypt(dst, src []byte) {
 		j -= 4
 	}
 
-	dst[0] = byte(r[0])
-	dst[1] = byte(r[0] >> 8)
-	dst[2] = byte(r[1])
-	dst[3] = byte(r[1] >> 8)
-	dst[4] = byte(r[2])
-	dst[5] = byte(r[2] >> 8)
-	dst[6] = byte(r[3])
-	dst[7] = byte(r[3] >> 8)
+	binary.LittleEndian.PutUint16(dst[0:], r[0])
+	binary.LittleEndian.PutUint16(dst[2:], r[1])
+	binary.LittleEndian.PutUint16(dst[4:], r[2])
+	binary.LittleEndian.PutUint16(dst[6:], r[3])
 }
