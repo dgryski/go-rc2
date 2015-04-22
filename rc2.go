@@ -80,125 +80,191 @@ func rotl16(x uint16, b uint) uint16 {
 	return (x >> (16 - b)) | (x << b)
 }
 
-// TODO(dgryski): inline encmix/encmash into Encrypt() ?
-
-func encmix(k, r []uint16, j int) {
-
-	// mix r[0]
-	r[0] = r[0] + k[j] + (r[3] & r[2]) + ((^r[3]) & r[1])
-	r[0] = rotl16(r[0], 1)
-	j++
-
-	// mix r[1]
-	r[1] = r[1] + k[j] + (r[0] & r[3]) + ((^r[0]) & r[2])
-	r[1] = rotl16(r[1], 2)
-	j++
-
-	// mix r[2]
-	r[2] = r[2] + k[j] + (r[1] & r[0]) + ((^r[1]) & r[3])
-	r[2] = rotl16(r[2], 3)
-	j++
-
-	// mix r[3]
-	r[3] = r[3] + k[j] + (r[2] & r[1]) + ((^r[2]) & r[0])
-	r[3] = rotl16(r[3], 5)
-	j++
-}
-
-func encmash(k, r []uint16) {
-	r[0] = r[0] + k[r[3]&63]
-	r[1] = r[1] + k[r[0]&63]
-	r[2] = r[2] + k[r[1]&63]
-	r[3] = r[3] + k[r[2]&63]
-}
-
 func (c *rc2Cipher) Encrypt(dst, src []byte) {
 
-	r := make([]uint16, 4)
-	r[0] = binary.LittleEndian.Uint16(src[0:])
-	r[1] = binary.LittleEndian.Uint16(src[2:])
-	r[2] = binary.LittleEndian.Uint16(src[4:])
-	r[3] = binary.LittleEndian.Uint16(src[6:])
+	r0 := binary.LittleEndian.Uint16(src[0:])
+	r1 := binary.LittleEndian.Uint16(src[2:])
+	r2 := binary.LittleEndian.Uint16(src[4:])
+	r3 := binary.LittleEndian.Uint16(src[6:])
 
 	var j int
 
-	for i := 0; i < 5; i++ {
-		encmix(c.k[:], r, j)
-		j += 4
+	for j <= 16 {
+		// mix r0
+		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
+		r0 = rotl16(r0, 1)
+		j++
+
+		// mix r1
+		r1 = r1 + c.k[j] + (r0 & r3) + ((^r0) & r2)
+		r1 = rotl16(r1, 2)
+		j++
+
+		// mix r2
+		r2 = r2 + c.k[j] + (r1 & r0) + ((^r1) & r3)
+		r2 = rotl16(r2, 3)
+		j++
+
+		// mix r3
+		r3 = r3 + c.k[j] + (r2 & r1) + ((^r2) & r0)
+		r3 = rotl16(r3, 5)
+		j++
+
 	}
-	encmash(c.k[:], r)
-	for i := 0; i < 6; i++ {
-		encmix(c.k[:], r, j)
-		j += 4
+
+	r0 = r0 + c.k[r3&63]
+	r1 = r1 + c.k[r0&63]
+	r2 = r2 + c.k[r1&63]
+	r3 = r3 + c.k[r2&63]
+
+	for j <= 40 {
+
+		// mix r0
+		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
+		r0 = rotl16(r0, 1)
+		j++
+
+		// mix r1
+		r1 = r1 + c.k[j] + (r0 & r3) + ((^r0) & r2)
+		r1 = rotl16(r1, 2)
+		j++
+
+		// mix r2
+		r2 = r2 + c.k[j] + (r1 & r0) + ((^r1) & r3)
+		r2 = rotl16(r2, 3)
+		j++
+
+		// mix r3
+		r3 = r3 + c.k[j] + (r2 & r1) + ((^r2) & r0)
+		r3 = rotl16(r3, 5)
+		j++
+
 	}
-	encmash(c.k[:], r)
-	for i := 0; i < 5; i++ {
-		encmix(c.k[:], r, j)
-		j += 4
+
+	r0 = r0 + c.k[r3&63]
+	r1 = r1 + c.k[r0&63]
+	r2 = r2 + c.k[r1&63]
+	r3 = r3 + c.k[r2&63]
+
+	for j <= 60 {
+
+		// mix r0
+		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
+		r0 = rotl16(r0, 1)
+		j++
+
+		// mix r1
+		r1 = r1 + c.k[j] + (r0 & r3) + ((^r0) & r2)
+		r1 = rotl16(r1, 2)
+		j++
+
+		// mix r2
+		r2 = r2 + c.k[j] + (r1 & r0) + ((^r1) & r3)
+		r2 = rotl16(r2, 3)
+		j++
+
+		// mix r3
+		r3 = r3 + c.k[j] + (r2 & r1) + ((^r2) & r0)
+		r3 = rotl16(r3, 5)
+		j++
 	}
 
-	binary.LittleEndian.PutUint16(dst[0:], r[0])
-	binary.LittleEndian.PutUint16(dst[2:], r[1])
-	binary.LittleEndian.PutUint16(dst[4:], r[2])
-	binary.LittleEndian.PutUint16(dst[6:], r[3])
-}
-
-func decmix(k, r []uint16, j int) {
-	// unmix r[3]
-	r[3] = rotl16(r[3], 16-5)
-	r[3] = r[3] - k[j] - (r[2] & r[1]) - ((^r[2]) & r[0])
-	j--
-
-	// unmix r[2]
-	r[2] = rotl16(r[2], 16-3)
-	r[2] = r[2] - k[j] - (r[1] & r[0]) - ((^r[1]) & r[3])
-	j--
-
-	// unmix r[1]
-	r[1] = rotl16(r[1], 16-2)
-	r[1] = r[1] - k[j] - (r[0] & r[3]) - ((^r[0]) & r[2])
-	j--
-
-	// unmix r[0]
-	r[0] = rotl16(r[0], 16-1)
-	r[0] = r[0] - k[j] - (r[3] & r[2]) - ((^r[3]) & r[1])
-	j--
-}
-
-func decmash(k, r []uint16) {
-	r[3] = r[3] - k[r[2]&63]
-	r[2] = r[2] - k[r[1]&63]
-	r[1] = r[1] - k[r[0]&63]
-	r[0] = r[0] - k[r[3]&63]
+	binary.LittleEndian.PutUint16(dst[0:], r0)
+	binary.LittleEndian.PutUint16(dst[2:], r1)
+	binary.LittleEndian.PutUint16(dst[4:], r2)
+	binary.LittleEndian.PutUint16(dst[6:], r3)
 }
 
 func (c *rc2Cipher) Decrypt(dst, src []byte) {
 
-	r := make([]uint16, 4)
-	r[0] = binary.LittleEndian.Uint16(src[0:])
-	r[1] = binary.LittleEndian.Uint16(src[2:])
-	r[2] = binary.LittleEndian.Uint16(src[4:])
-	r[3] = binary.LittleEndian.Uint16(src[6:])
+	r0 := binary.LittleEndian.Uint16(src[0:])
+	r1 := binary.LittleEndian.Uint16(src[2:])
+	r2 := binary.LittleEndian.Uint16(src[4:])
+	r3 := binary.LittleEndian.Uint16(src[6:])
 
 	j := 63
 
-	for i := 0; i < 5; i++ {
-		decmix(c.k[:], r, j)
-		j -= 4
-	}
-	decmash(c.k[:], r)
-	for i := 0; i < 6; i++ {
-		decmix(c.k[:], r, j)
-		j -= 4
-	}
-	decmash(c.k[:], r)
-	for i := 0; i < 5; i++ {
-		decmix(c.k[:], r, j)
-		j -= 4
+	for j >= 44 {
+		// unmix r3
+		r3 = rotl16(r3, 16-5)
+		r3 = r3 - c.k[j] - (r2 & r1) - ((^r2) & r0)
+		j--
+
+		// unmix r2
+		r2 = rotl16(r2, 16-3)
+		r2 = r2 - c.k[j] - (r1 & r0) - ((^r1) & r3)
+		j--
+
+		// unmix r1
+		r1 = rotl16(r1, 16-2)
+		r1 = r1 - c.k[j] - (r0 & r3) - ((^r0) & r2)
+		j--
+
+		// unmix r0
+		r0 = rotl16(r0, 16-1)
+		r0 = r0 - c.k[j] - (r3 & r2) - ((^r3) & r1)
+		j--
 	}
 
-	binary.LittleEndian.PutUint16(dst[0:], r[0])
-	binary.LittleEndian.PutUint16(dst[2:], r[1])
-	binary.LittleEndian.PutUint16(dst[4:], r[2])
-	binary.LittleEndian.PutUint16(dst[6:], r[3])
+	r3 = r3 - c.k[r2&63]
+	r2 = r2 - c.k[r1&63]
+	r1 = r1 - c.k[r0&63]
+	r0 = r0 - c.k[r3&63]
+
+	for j >= 20 {
+		// unmix r3
+		r3 = rotl16(r3, 16-5)
+		r3 = r3 - c.k[j] - (r2 & r1) - ((^r2) & r0)
+		j--
+
+		// unmix r2
+		r2 = rotl16(r2, 16-3)
+		r2 = r2 - c.k[j] - (r1 & r0) - ((^r1) & r3)
+		j--
+
+		// unmix r1
+		r1 = rotl16(r1, 16-2)
+		r1 = r1 - c.k[j] - (r0 & r3) - ((^r0) & r2)
+		j--
+
+		// unmix r0
+		r0 = rotl16(r0, 16-1)
+		r0 = r0 - c.k[j] - (r3 & r2) - ((^r3) & r1)
+		j--
+
+	}
+
+	r3 = r3 - c.k[r2&63]
+	r2 = r2 - c.k[r1&63]
+	r1 = r1 - c.k[r0&63]
+	r0 = r0 - c.k[r3&63]
+
+	for j >= 0 {
+
+		// unmix r3
+		r3 = rotl16(r3, 16-5)
+		r3 = r3 - c.k[j] - (r2 & r1) - ((^r2) & r0)
+		j--
+
+		// unmix r2
+		r2 = rotl16(r2, 16-3)
+		r2 = r2 - c.k[j] - (r1 & r0) - ((^r1) & r3)
+		j--
+
+		// unmix r1
+		r1 = rotl16(r1, 16-2)
+		r1 = r1 - c.k[j] - (r0 & r3) - ((^r0) & r2)
+		j--
+
+		// unmix r0
+		r0 = rotl16(r0, 16-1)
+		r0 = r0 - c.k[j] - (r3 & r2) - ((^r3) & r1)
+		j--
+
+	}
+
+	binary.LittleEndian.PutUint16(dst[0:], r0)
+	binary.LittleEndian.PutUint16(dst[2:], r1)
+	binary.LittleEndian.PutUint16(dst[4:], r2)
+	binary.LittleEndian.PutUint16(dst[6:], r3)
 }
