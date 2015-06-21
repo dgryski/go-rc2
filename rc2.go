@@ -109,7 +109,6 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 		r3 = r3 + c.k[j] + (r2 & r1) + ((^r2) & r0)
 		r3 = rotl16(r3, 5)
 		j++
-
 	}
 
 	r0 = r0 + c.k[r3&63]
@@ -118,7 +117,6 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 	r3 = r3 + c.k[r2&63]
 
 	for j <= 40 {
-
 		// mix r0
 		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
 		r0 = rotl16(r0, 1)
@@ -138,7 +136,6 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 		r3 = r3 + c.k[j] + (r2 & r1) + ((^r2) & r0)
 		r3 = rotl16(r3, 5)
 		j++
-
 	}
 
 	r0 = r0 + c.k[r3&63]
@@ -147,7 +144,6 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 	r3 = r3 + c.k[r2&63]
 
 	for j <= 60 {
-
 		// mix r0
 		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
 		r0 = rotl16(r0, 1)
@@ -231,7 +227,6 @@ func (c *rc2Cipher) Decrypt(dst, src []byte) {
 		r0 = rotl16(r0, 16-1)
 		r0 = r0 - c.k[j] - (r3 & r2) - ((^r3) & r1)
 		j--
-
 	}
 
 	r3 = r3 - c.k[r2&63]
@@ -240,7 +235,6 @@ func (c *rc2Cipher) Decrypt(dst, src []byte) {
 	r0 = r0 - c.k[r3&63]
 
 	for j >= 0 {
-
 		// unmix r3
 		r3 = rotl16(r3, 16-5)
 		r3 = r3 - c.k[j] - (r2 & r1) - ((^r2) & r0)
@@ -260,7 +254,6 @@ func (c *rc2Cipher) Decrypt(dst, src []byte) {
 		r0 = rotl16(r0, 16-1)
 		r0 = r0 - c.k[j] - (r3 & r2) - ((^r3) & r1)
 		j--
-
 	}
 
 	binary.LittleEndian.PutUint16(dst[0:], r0)
