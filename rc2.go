@@ -10,6 +10,7 @@ package rc2
 import (
 	"crypto/cipher"
 	"encoding/binary"
+	"strconv"
 )
 
 // The rc2 block size in bytes
@@ -19,9 +20,28 @@ type rc2Cipher struct {
 	k [64]uint16
 }
 
+// KeySizeError indicates the supplied key was invalid
+type KeySizeError int
+
+func (k KeySizeError) Error() string { return "rc2: invalid key size " + strconv.Itoa(int(k)) }
+
+// EffectiveKeySizeError indicates the supplied effective key length was invalid
+type EffectiveKeySizeError int
+
+func (k EffectiveKeySizeError) Error() string {
+	return "rc2: invalid effective key size " + strconv.Itoa(int(k))
+}
+
 // New returns a new rc2 cipher with the given key and effective key length t1
 func New(key []byte, t1 int) (cipher.Block, error) {
-	// TODO(dgryski): error checking for key length
+	if l := len(key); l == 0 || l > 128 {
+		return nil, KeySizeError(l)
+	}
+
+	if t1 < 8 || t1 > 1024 {
+		return nil, EffectiveKeySizeError(t1)
+	}
+
 	return &rc2Cipher{
 		k: expandKey(key, t1),
 	}, nil
