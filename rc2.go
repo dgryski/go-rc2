@@ -89,6 +89,7 @@ func (c *rc2Cipher) Encrypt(dst, src []byte) {
 
 	var j int
 
+	// These three mix blocks have not been extracted to a common function for to performance reasons.
 	for j <= 16 {
 		// mix r0
 		r0 = r0 + c.k[j] + (r3 & r2) + ((^r3) & r1)
