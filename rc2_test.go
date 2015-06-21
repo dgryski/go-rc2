@@ -8,7 +8,6 @@ import (
 
 func TestEncryptDecrypt(t *testing.T) {
 
-	// TODO(dgryski): add the rest of the test vectors from the RFC
 	var tests = []struct {
 		key    string
 		plain  string
